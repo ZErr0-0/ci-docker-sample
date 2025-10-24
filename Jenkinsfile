@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_REPO = "your_dockerhub_username/myapp"  // замени на свой репозиторий
+        DOCKERHUB_REPO = "zer0110/myapp"
     }
 
     stages {
