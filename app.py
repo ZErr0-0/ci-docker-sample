@@ -1,108 +1,87 @@
-def dop_cell(cell):
-    if len(cell) != 2:
-        return False
-    if not ('A' <= cell[0] <= 'H' or 'a' <= cell[0] <= 'h'):
-        return False
-    if not ('1' <= cell[1] <= '8'):
-        return False
-    return True
+import sys
 
-def _figure_(figure):
-    valid_figures = ["ферзь", "ладья", "слон", "конь"]
-    return figure.lower() in valid_figures
+def validate_utf8(file_name):
+    error_found = False  # Флаг, сигнализирующий о наличии ошибки в файле
+    error_position = 0  # Позиция в файле, где была обнаружена ошибка
 
-def coords(cell):
-    letter_to_num = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7}
-    x = letter_to_num[cell[0].upper()]
-    y = int(cell[1]) - 1
-    return x, y
+    with open(file_name, 'rb') as opened_file:  # Открываем файл в двоичном режиме для чтения
+        while True:
+            current_byte = opened_file.read(1)  # Читаем один байт из файла
+            if not current_byte:  # Если конец файла, выходим из цикла
+                break
+            error_position += 1  # Увеличиваем счетчик позиции в файле
+            byte_value = ord(current_byte)  # Преобразуем байт в целое число
+            if byte_value < 0x80:  # Если это ASCII-символ, пропускаем его
+                continue
+            elif 0xC0 <= byte_value < 0xE0:  # Если это первый байт двухбайтовой последовательности UTF-8
+                next_byte = opened_file.read(1)  # Читаем следующий байт
+                if not next_byte:  # Если конец файла, сигнализируем об ошибке
+                    error_found = True
+                    break
+                error_position += 1  # Увеличиваем счетчик позиции в файле
+                next_byte_value = ord(next_byte)  # Преобразуем байт в целое число
+                if not (0x80 <= next_byte_value < 0xC0):  # Если второй байт не соответствует формату UTF-8, сигнализируем об ошибке
+                    error_found = True
+                    break
+            elif 0xE0 <= byte_value < 0xF0:  # Если это первый байт трехбайтовой последовательности UTF-8
+                next_byte = opened_file.read(1)  # Читаем следующий байт
+                if not next_byte:  # Если конец файла, сигнализируем об ошибке
+                    error_found = True
+                    break
+                error_position += 1  # Увеличиваем счетчик позиции в файле
+                next_byte_value = ord(next_byte)  # Преобразуем байт в целое число
+                if not (0x80 <= next_byte_value < 0xC0):  # Если второй байт не соответствует формату UTF-8, сигнализируем об ошибке
+                    error_found = True
+                    break
+                next_byte = opened_file.read(1)  # Читаем следующий байт
+                if not next_byte:  # Если конец файла, сигнализируем об ошибке
+                    error_found = True
+                    break
+                error_position += 1  # Увеличиваем счетчик позиции в файле
+                next_byte_value = ord(next_byte)  # Преобразуем байт в целое число
+                if not (0x80 <= next_byte_value < 0xC0):  # Если третий байт не соответствует формату UTF-8, сигнализируем об ошибке
+                    error_found = True
+                    break
+            elif 0xF0 <= byte_value < 0xF8:  # Если это первый байт четырехбайтовой последовательности UTF-8
+                next_byte = opened_file.read(1)  # Читаем следующий байт
+                if not next_byte:  # Если конец файла, сигнализируем об ошибке
+                    error_found = True
+                    break
+                error_position += 1  # Увеличиваем счетчик позиции в файле
+                next_byte_value = ord(next_byte)  # Преобразуем байт в целое число
+                if not (0x80 <= next_byte_value < 0xC0):  # Если второй байт не соответствует формату UTF-8, сигнализируем об ошибке
+                    error_found = True
+                    break
+                next_byte = opened_file.read(1)  # Читаем следующий байт
+                if not next_byte:  # Если конец файла, сигнализируем об ошибке
+                    error_found = True
+                    break
+                error_position += 1  # Увеличиваем счетчик позиции в файле
+                next_byte_value = ord(next_byte)  # Преобразуем байт в целое число
+                if not (0x80 <= next_byte_value < 0xC0):  # Если третий байт не соответствует формату UTF-8, сигнализируем об ошибке
+                    error_found = True
+                    break
+                next_byte = opened_file.read(1)  # Читаем следующий байт
+                if not next_byte:  # Если конец файла, сигнализируем об ошибке
+                    error_found = True
+                    break
+                error_position += 1  # Увеличиваем счетчик позиции в файле
+                next_byte_value = ord(next_byte)  # Преобразуем байт в целое число
+                if not (0x80 <= next_byte_value < 0xC0):  # Если четвертый байт не соответствует формату UTF-8, сигнализируем об ошибке
+                    error_found = True
+                    break
+            else:  # Если первый байт не соответствует формату UTF-8, сигнализируем об ошибке
+                error_found = True
+                break
 
-def coords2(x, y):
-    num_to_letter = {0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H'}
-    return num_to_letter[x] + str(y + 1)
+    if error_found:  # Если была обнаружена ошибка, выводим сообщение об ошибке и завершаем работу программы
+        print(f"Ошибка в позиции {error_position}: неверная последовательность UTF-8", file=sys.stderr)
+        sys.exit(1)
 
-def same_color(cell1, cell2):
-    x1, y1 = coords(cell1)
-    x2, y2 = coords(cell2)
-    return (x1 + y1) % 2 == (x2 + y2) % 2
-
-def risk(figure, cell1, cell2):
-    x1, y1 = coords(cell1)
-    x2, y2 = coords(cell2)
-
-    if figure.lower() == "ферзь":
-        return x1 == x2 or y1 == y2 or abs(x1 - x2) == abs(y1 - y2)
-    elif figure.lower() == "ладья":
-        return x1 == x2 or y1 == y2
-    elif figure.lower() == "слон":
-        return abs(x1 - x2) == abs(y1 - y2)
-    elif figure.lower() == "конь":
-        return (abs(x1 - x2), abs(y1 - y2)) in [(2, 1), (1, 2)]
-    else:
-        return False
-
-def possible_moves(figure, cell):
-    x, y = coords(cell)
-    moves = []
-
-    if figure.lower() == "ферзь":
-        for i in range(8):
-            if i != y:
-                moves.append(coords2(x, i))
-            if i != x:
-                moves.append(coords2(i, y))
-        for i in range(1, 8):
-            if 0 <= x + i < 8 and 0 <= y + i < 8:
-                moves.append(coords2(x + i, y + i))
-            if 0 <= x - i < 8 and 0 <= y - i < 8:
-                moves.append(coords2(x - i, y - i))
-            if 0 <= x + i < 8 and 0 <= y - i < 8:
-                moves.append(coords2(x + i, y - i))
-            if 0 <= x - i < 8 and 0 <= y + i < 8:
-                moves.append(coords2(x - i, y + i))
-
-    elif figure.lower() == "ладья":
-        for i in range(8):
-            if i != y:
-                moves.append(coords2(x, i))
-            if i != x:
-                moves.append(coords2(i, y))
-
-    elif figure.lower() == "слон":
-        for i in range(1, 8):
-            if 0 <= x + i < 8 and 0 <= y + i < 8:
-                moves.append(coords2(x + i, y + i))
-            if 0 <= x - i < 8 and 0 <= y - i < 8:
-                moves.append(coords2(x - i, y - i))
-            if 0 <= x + i < 8 and 0 <= y - i < 8:
-                moves.append(coords2(x + i, y - i))
-            if 0 <= x - i < 8 and 0 <= y + i < 8:
-                moves.append(coords2(x - i, y + i))
-
-    elif figure.lower() == "конь":
-        knight_moves = [(2, 1), (2, -1), (-2, 1), (-2, -1),
-                        (1, 2), (1, -2), (-1, 2), (-1, -2)]
-        for dx, dy in knight_moves:
-            if 0 <= x + dx < 8 and 0 <= y + dy < 8:
-                moves.append(coords2(x + dx, y + dy))
-
-    return moves
-
-kv1 = input('введите первую клетку (например, A1): ')
-if not dop_cell(kv1):
-    print("ошибка: Некорректная клетка. введите клетку в диапазоне от A1 до H8.")
-    exit()
-
-kv2 = input('введите вторую клетку (например, A1): ')
-if not dop_cell(kv2):
-    print("ошибка: Некорректная клетка. введите клетку в диапазоне от A1 до H8.")
-    exit()
-
-figure = input("введите название фигуры (ферзь, ладья, слон, конь): ")
-if not _figure_(figure):
-    print("ошибка: некорректное название фигуры. введите одно из: ферзь, ладья, слон, конь.")
-    exit()
-
-print(f"клетки {kv1} и {kv2} одного цвета:", same_color(kv1, kv2))
-print(f"фигура {figure} угрожает клетке {kv2}:", risk(figure, kv1, kv2))
-print(f"возможные ходы для фигуры {figure} из клетки {kv1}:", possible_moves(figure, kv1))
+if __name__ == "__main__":
+    if len(sys.argv) < 2:  # Если не был передан аргумент командной строки, выводим инструкцию по использованию программы и завершаем работу
+        print("Введите в командной строке директории, в которой расположены файл программы и анализируемый файл: \npython 4lab.py <filename>")
+        sys.exit(1)
+    input_file_name = sys.argv[1]  # Получаем имя входного файла из аргумента командной строки
+    validate_utf8(input_file_name)  # Вызываем функцию валидации UTF-8
+    print("Файл является допустимым представлением UTF-8")  # Выводим сообщение об успешном завершении работы программы
